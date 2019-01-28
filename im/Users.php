@@ -20,7 +20,7 @@ class Users
             select * from users where qq = {$data['qq']}
         ";
         $user = Sqlite::find($sql);
-
+        echo $sql;
         if (empty($user)) {
             $data = [
                 'code'=> 1,
@@ -77,7 +77,8 @@ class Users
             INSERT INTO users (qq, nickname, pwd, fd, avatar)
              VALUES ($qq, '{$data['nickname']}', {$data['pwd']}, '', {$data['avatar']});
         ";
-        Sqlite::exec($sql);
+        $res = Sqlite::exec($sql);
+
         // 把qq返回给客户端
         $response->end(json_encode(['qq' => $qq]));
     }
@@ -173,14 +174,30 @@ class Users
         ";
         $res1 = Sqlite::exec($sql_user);
         $res2 = Sqlite::exec($sql_friends);
+
+        // 查询用户qq好友
+        $friends = self::getfriends($data['session_id']);
         if ($res1 && $res2) {
             $data = [
                 'code' => 0,
                 'msg' => '添加成功',
-                'message_type' => ImConfig::MESSAGE_TYPE_ADD_FRIENDS
+                'message_type' => ImConfig::MESSAGE_TYPE_ADD_FRIENDS,
+                'friends' => $friends
             ];
             $server->push($fd, json_encode($data));
         }
+
+        // 查询用户资料
+        $friend_info = self::getUserByqq($friend_qq);
+        $friends = self::getfriends($friend_info['session_id']);
+
+        $data = [
+            'code' => 0,
+            'message_type'=> \App\config\ImConfig::MESSAGE_TYPE_FRIENDS,
+            'friends' => $friends
+        ];
+
+        $server->push($friend_info['fd'], json_encode($data));
     }
 
     /**

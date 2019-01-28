@@ -23,7 +23,7 @@ class Chat
             self::signle($server, $data);
         }
         if ($data['chat_type'] == chatConst::CHAT_TYPE_GROUP) {
-            self::group($server, $data);
+            self::group($server, $data, $frame);
         }
 
     }
@@ -76,10 +76,31 @@ class Chat
      * 群聊
      * @param $re
      */
-    public static function group($server, $data)
+    public static function group($server, $data, $frame)
     {
         // 查询出这个群里的所有用户的fd,然后发送消息
+        // 发送给所有在线用户
+        $users = Users::getUserByqq($data['user_qq']);
+        if ($data['to_qq'] == 'all') {
+            $msg = [
+                'code' => 0,
+                'message_type'=> ImConfig::MESSAGE_TYPE_CHAT,
+                'chat_type' => chatConst::CHAT_TYPE_GROUP,
+                'to_qq' => $data['to_qq'],
+                'msg' => $data['msg'],
+                'userinfo'=> $users,
+                'datetime'=> date('Y-m-d H:i:s')
+            ];
 
+            // 发送给所有在线用户
+            foreach ($server->connections as $fd) {
+                // 不发送给自己
+                if ($fd == $frame->fd) {
+                    continue;
+                }
+                $server->push($fd, json_encode($msg));
+            }
+        }
     }
 
     /**

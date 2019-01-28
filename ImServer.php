@@ -17,7 +17,16 @@ class ImServer
         self::onmessage();
         self::onclose();
         self::onrequest();
-
+        $this->server->set(
+          [
+              'worker_num' => 4,    //worker process num
+              'backlog' => 128,   //listen backlog
+              'max_request' => 50,
+              'dispatch_mode'=>1,
+              'daemonize' => false,
+              'log_file' => '/var/log/swoole.log'
+          ]
+        );
         $this->server->start();
     }
 

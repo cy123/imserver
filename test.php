@@ -73,9 +73,9 @@ $message = "
 $del = "
     delete from users;
 ";
-\App\service\Sqlite::exec($del);
-//$ret =\App\service\Sqlite::query($message);
+//\App\service\Sqlite::exec($del);
+$ret =\App\service\Sqlite::query($u);
 //var_dump($db->querySingle($sql, true));die;
-//while($row = $ret->fetchArray(SQLITE3_ASSOC) ){
-//    var_dump($row);
-//}
+while($row = $ret->fetchArray(SQLITE3_ASSOC) ){
+    var_dump($row);
+}
