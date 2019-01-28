@@ -12,4 +12,5 @@ class ImConfig
     const MESSAGE_TYPE_FRIENDS = 4;
     const MESSAGE_TYPE_ADD_FRIENDS = 5; // 添加好友
     const MESSAGE_TYPE_READ = 6; // 设置消息已读
+    const MESSAGE_TYPE_ONLINE_USER_NUM = 7; // 在线人数
 }

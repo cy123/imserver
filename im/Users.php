@@ -49,12 +49,14 @@ class Users
         ";
         Sqlite::exec($sql);
         $unread = self::getUnRead($data['qq']);
+        $unline_user_num = count($server->connections);
         $data = [
             'code'=> 0,
             'message_type'=> 3,
             'msg' => '登录成功',
             'user'=> $user,
             'unread' => $unread,
+            'unline_user_num' => $unline_user_num,
             'session_id' => $session_id
         ];
         // 查询好友列表
