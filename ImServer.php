@@ -18,7 +18,6 @@ class ImServer
         self::onmessage();
         self::onclose();
         self::onrequest();
-
         $this->server->start();
     }
 
@@ -26,7 +25,7 @@ class ImServer
     {
         $this->server->set(
           [
-              'daemonize' => true,
+              'daemonize' => false,
               'log_file' => '/var/log/swoole.log'
           ]
         );
@@ -41,37 +40,8 @@ class ImServer
 
         $this->server->on('open', function (swoole_websocket_server $server, $request) {
             echo "server: handshake success with fd{$request->fd}\n";
-//            var_dump($request);
-            $params = $request->get;
-
-            // 判断是否有登录
-            if (!empty($params['session_id']) && $params['session_id'] != 'null') {
-
-                // 拉取用户好友
-                $friends = Users::getfriends($params['session_id']);
-                $data = [
-                    'code' => 0,
-                    'message_type'=> ImConfig::MESSAGE_TYPE_FRIENDS,
-                    'friends' => $friends,
-                    'unline_user_num' => count($this->server->connections)
-                ];
-                $server->push($request->fd, json_encode($data));
-                // 更新用户fd
-                Users::updateUserFdBySessionId($request->fd, $params['session_id']);
-            }
-            //
-            if (empty($params['session_id'])) {
-
-            }
-            // 通知其它的在线用户更新在线人数
-            $unline_user_num = count($this->server->connections);
-            foreach ($this->server->connections as $fd) {
-                $online_user = [
-                    'message_type' => ImConfig::MESSAGE_TYPE_ONLINE_USER_NUM,
-                    'unline_user_num'=> $unline_user_num
-                ];
-                $server->push($fd, json_encode($online_user));
-            }
+            // 处理
+            Message::handleOpen($this->server, $request);
         });
     }
 
@@ -92,18 +62,10 @@ class ImServer
      */
     private function onclose()
     {
-        $this->server->on('close', function ($ser, $fd) {
+        $this->server->on('close', function ($server, $fd) {
             echo "client {$fd} closed\n";
              // 通知其它的在线用户更新在线人数
-            $unline_user_num = count($this->server->connections) - 1;
-            foreach ($this->server->connections as $fd_new) {
-                if ($fd_new == $fd) continue;
-                $online_user = [
-                    'message_type' => ImConfig::MESSAGE_TYPE_ONLINE_USER_NUM,
-                    'unline_user_num'=> $unline_user_num
-                ];
-                $this->server->push($fd_new, json_encode($online_user));
-            }
+            Message::handleClose($server, $fd);
         });
     }
 

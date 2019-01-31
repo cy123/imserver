@@ -13,4 +13,14 @@ class ImConfig
     const MESSAGE_TYPE_ADD_FRIENDS = 5; // 添加好友
     const MESSAGE_TYPE_READ = 6; // 设置消息已读
     const MESSAGE_TYPE_ONLINE_USER_NUM = 7; // 在线人数
+    const MESSAGE_TYPE_ONOPEN = 8;
+    const MESSAGE_TYPE_LOGOUT = 9;
+
+
+    // 系统
+    const SERVER_OPT_KEY = ',,jkfdjklsf894893248294';
+
+    //
+    const CODE_SUCCESS = 0;
+    const CODE_ERROR = 1;
 }

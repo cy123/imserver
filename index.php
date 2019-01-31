@@ -1,70 +1,74 @@
 <?php
 
-require 'Chat.php';
-require 'Users.php';
+require './config/ImConfig.php';
 
-$server = new Swoole\WebSocket\Server("0.0.0.0", 9501);
+//  websocket服务器入口
+// 接收参数
+$opt = !empty($argv[1]) ? $argv[1] : '';
 
-//$server->on('open', function (Swoole\WebSocket\Server $server, $request) {
-//    echo "server: handshake success with fd{$request->fd}\n";
-////    var_dump($request);
-//    // 建
-//});
-$server->on('handshake', function (\swoole_http_request $request, \swoole_http_response $response) {
+switch ($opt) {
 
-     //print_r( $request->server );
-     echo $request->server['query_string'].'\\n';
-     // 有这里进行判断，是否可以建立连接
-    $user = new Users();
-     if (!$user->login($request)) {
-        $response->end();
-         return false;
-     }
+    case 'start':
+        echo "\033[32;32m 服务器开始启动... \033[0m".PHP_EOL;
+        require 'im.php';
+        break;
+        // 重启服务器
+    case 'reload':
+        reload();
+        break;
+        //
+    case 'stop':
+        stop();
+        break;
+    default:
+//        echo "\033[32;32m 服务器开始启动... \033[0m".PHP_EOL;
+        require 'im.php';
+}
 
-    // websocket握手连接算法验证
-    $secWebSocketKey = $request->header['sec-websocket-key'];
-    $patten = '#^[+/0-9A-Za-z]{21}[AQgw]==$#';
-    if (0 === preg_match($patten, $secWebSocketKey) || 16 !== strlen(base64_decode($secWebSocketKey))) {
-        $response->end();
-        return false;
+// 重启服务器 通过http去通知服务器重启
+function reload()
+{
+    $url = '127.0.0.1?opt=reload&key='.\App\config\ImConfig::SERVER_OPT_KEY;
+    $res = curl_get($url);
+    if (empty($res)) {
+        echo "\033[32;32m 服务器未启动 \033[0m";
+        echo PHP_EOL;
+        return;
     }
-    echo $request->header['sec-websocket-key'];
-    $key = base64_encode(sha1(
-        $request->header['sec-websocket-key'] . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11',
-        true
-    ));
+    if ($res->reload == true) {
+       echo "\033[32;32m reload success \033[0m";
+       echo PHP_EOL;
+    }
+}
 
-    $headers = [
-        'Upgrade' => 'websocket',
-        'Connection' => 'Upgrade',
-        'Sec-WebSocket-Accept' => $key,
-        'Sec-WebSocket-Version' => '13',
-    ];
+function stop()
+{
+    $url = '127.0.0.1?opt=stop&key='.\App\config\ImConfig::SERVER_OPT_KEY;
+    $res = curl_get($url);
+    if ($res->stop === true) {
+        echo '\033[32;32m stop success \033[0m'.PHP_EOL;
+    }
+}
 
-    // WebSocket connection to 'ws://127.0.0.1:9502/'
-    // failed: Error during WebSocket handshake:
-    // Response must not include 'Sec-WebSocket-Protocol' header if not present in request: websocket
-    if (isset($request->header['sec-websocket-protocol'])) {
-        $headers['Sec-WebSocket-Protocol'] = $request->header['sec-websocket-protocol'];
+function curl_get($url)
+{
+    $curl = curl_init();
+    //设置抓取的url
+    curl_setopt($curl, CURLOPT_URL, $url);
+    // 设置端口
+    curl_setopt($curl, CURLOPT_PORT, 9501);
+    //设置头文件的信息作为数据流输出
+    curl_setopt($curl, CURLOPT_HEADER, 1);
+    //设置获取的信息以文件流的形式返回，而不是直接输出。
+    curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+    //执行命令
+    $data = curl_exec($curl);
+    //关闭URL请求
+    curl_close($curl);
+    if(empty($data)) {
+        return '';
     }
 
-    foreach ($headers as $key => $val) {
-        $response->header($key, $val);
-    }
-
-    $response->status(101);
-    $response->end();
-});
-
-$server->on('message', function (Swoole\WebSocket\Server $server, $frame) {
-//    echo "receive from {$frame->fd}:{$frame->data},opcode:{$frame->opcode},fin:{$frame->finish}\n";
-//    $server->push(1, '收到客户消息：'.$frame->data);
-    // 处理聊天消息转发
-    Chat::handle($server, $frame);
-});
-
-$server->on('close', function ($ser, $fd) {
-    echo "client {$fd} closed\n";
-});
-
-$server->start();
+    list($header, $body) = explode("\r\n\r\n", $data, 2);
+    return json_decode($body);
+}

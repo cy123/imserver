@@ -73,9 +73,13 @@ $message = "
 $del = "
     delete from users;
 ";
-//\App\service\Sqlite::exec($del);
+$sql = "
+UPDATE users SET  `session_id` = '63b9562f-ad57-4989-92ad-adb725e7a92c' , `fd` = 1 WHERE `qq` = 6001
+";
+\App\service\Sqlite::exec($sql);
+return;
 $ret =\App\service\Sqlite::query($u);
-//var_dump($db->querySingle($sql, true));die;
+//var_dump($db->querySingle($sql, true));
 while($row = $ret->fetchArray(SQLITE3_ASSOC) ){
     var_dump($row);
 }
